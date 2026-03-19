@@ -1,118 +1,223 @@
-# Code Search API — Local Semantic Code Search with Ollama
+# Code Search API
 
-![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-API-009688)
-![Ollama](https://img.shields.io/badge/Ollama-local--first-black)
-![License: MIT](https://img.shields.io/badge/license-MIT-green)
+**Local semantic code search powered by Ollama embeddings and SQLite.**
 
-A local-first semantic code search API built with Ollama and SQLite. It indexes your codebase using language-aware chunking, generates LLM summaries for each chunk, and supports hybrid search that combines raw code embeddings with summary embeddings so you can find implementation details by intent instead of exact text.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Ollama](https://img.shields.io/badge/Ollama-local--first-000000?logo=ollama)](https://ollama.com)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-## Prerequisites
+Index your codebase with language-aware chunking, generate LLM summaries per chunk, and search by intent instead of exact text. Everything runs locally. No cloud APIs, no vendor lock-in, no per-query costs.
 
-- Python 3.10+
-- Ollama running locally or on a reachable host
-- An embedding model available in Ollama, such as `nomic-embed-text`
+## How It Works
+
+```
+Your code repos
+      │
+      ▼
+ File discovery ──► Language-aware chunking (Python, TS, Go, Rust, etc.)
+      │
+      ├──► Embedding via Ollama ──► packed float32 vectors in SQLite
+      │
+      └──► LLM summarization ──► summary + summary embedding in SQLite
+                                        │
+                                        ▼
+                              FastAPI search endpoint
+                                        │
+                              ┌─────────┴─────────┐
+                              │                   │
+                        Code vectors      Summary vectors
+                              │                   │
+                              └────── weighted ────┘
+                                        │
+                                        ▼
+                              Hybrid ranked results
+```
+
+1. **Chunking**: Files are split at logical boundaries (function/class definitions, not arbitrary line counts). Python, TypeScript, JavaScript, Go, Rust, Markdown, and config files are all handled with language-specific patterns.
+
+2. **Embedding**: Each chunk is embedded with your chosen Ollama model and stored as packed float32 BLOBs in SQLite. No vector database required.
+
+3. **Summarization**: An LLM generates a 1-2 sentence summary per chunk describing what the code *does*, not just what it *contains*. The summary gets its own embedding vector.
+
+4. **Hybrid search**: Queries match against both code embeddings (35% weight) and summary embeddings (65% weight). This means searching "authentication flow" finds auth code even if the word "authentication" never appears in variable names.
 
 ## Quick Start
 
-1. **Clone**
-   ```bash
-   git clone https://github.com/solomonneas/code-search-api.git
-   cd code-search-api
-   ```
-2. **Install**
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   ```
-3. **Configure**
-   ```bash
-   cp .env.example .env
-   # edit .env to point at the code roots you want indexed
-   ```
-4. **Run**
-   ```bash
-   set -a
-   source .env
-   set +a
-   python3 run-index.py
-   uvicorn server:app --host 0.0.0.0 --port 8000
-   ```
+```bash
+git clone https://github.com/solomonneas/code-search-api.git
+cd code-search-api
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env    # edit CODE_SEARCH_WORKSPACE to point at your repos
+```
 
-## API Docs
+Pull an embedding model and start Ollama:
 
-Interactive docs are available at `/docs` when the server is running.
+```bash
+ollama pull qwen3-embedding:8b
+```
 
-Endpoints:
-- `GET /health` — simple liveness check
-- `GET /api/health` — health plus index/runtime metadata
-- `POST /api/search` — semantic + hybrid search across indexed chunks
-- `POST /api/index` — queue an indexing run in the background
-- `POST /api/backfill-summaries` — generate summaries for chunks missing them
-- `GET /api/projects` — per-project chunk counts and summary coverage
-- `GET /api/stats` — chunk type and project coverage stats
-- `GET /api/summary-stats` — summary counts by model
+Index your code, then start the server:
+
+```bash
+source .env
+python3 run-index.py                          # first-time index
+uvicorn server:app --host 0.0.0.0 --port 5204
+```
+
+Search:
+
+```bash
+curl -s -X POST http://localhost:5204/api/search \
+  -H "Content-Type: application/json" \
+  -d '{"query": "rate limiting middleware", "mode": "hybrid"}'
+```
+
+## Embedding Models
+
+The embedding model is the most important choice. It determines search quality.
+
+**Recommended: `qwen3-embedding:8b`** (what this project was built on)
+
+| Model | Params | VRAM | Quality | Speed | Best For |
+|-------|--------|------|---------|-------|----------|
+| **qwen3-embedding:8b** | 8B | ~6 GB | ★★★★★ | ★★★☆☆ | Best overall. Strong code + multilingual understanding. **Recommended.** |
+| qwen3-embedding:4b | 4B | ~3 GB | ★★★★☆ | ★★★★☆ | Good balance if VRAM is tight |
+| qwen3-embedding:0.6b | 0.6B | ~500 MB | ★★★☆☆ | ★★★★★ | Laptop/low-resource environments |
+| nomic-embed-text | 137M | ~300 MB | ★★★☆☆ | ★★★★★ | Lightweight, fast, proven. Good starter model. |
+| mxbai-embed-large | 335M | ~700 MB | ★★★½☆ | ★★★★☆ | Strong English performance |
+| bge-m3 | 567M | ~1 GB | ★★★★☆ | ★★★★☆ | Excellent multilingual support |
+| snowflake-arctic-embed2 | 568M | ~1 GB | ★★★★☆ | ★★★★☆ | Strong multilingual, good scaling |
+| nomic-embed-text-v2-moe | MoE | ~500 MB | ★★★★☆ | ★★★★☆ | Multilingual MoE, efficient |
+
+Pull your chosen model:
+
+```bash
+ollama pull qwen3-embedding:8b    # recommended
+# or
+ollama pull nomic-embed-text      # lightweight alternative
+```
+
+Set it in `.env`:
+
+```
+CODE_SEARCH_EMBED_MODEL=qwen3-embedding:8b
+```
+
+> **Note:** Changing the embedding model after indexing requires a full re-index since vector dimensions and similarity spaces differ between models.
+
+## Summary Models
+
+Summaries are what make hybrid search work. The summarizer reads each code chunk and writes a 1-2 sentence description of what it *does*. That summary gets its own embedding, so you can find code by describing behavior.
+
+**Be realistic about model quality here.** A tiny quantized local model will produce vague, useless summaries like "This file contains code." That defeats the purpose. You need a model that can actually read code and explain it.
+
+### If you have Ollama Pro (cloud models via Ollama)
+
+Best option. Cloud-quality summaries with zero API key management:
+
+| Model | Quality | Speed | Notes |
+|-------|---------|-------|-------|
+| **qwen3-coder-next:cloud** | ★★★★★ | ★★★★☆ | Code specialist. Recommended. |
+| deepseek-v3.2:cloud | ★★★★½ | ★★★★★ | Fast, strong general coding |
+| glm-5:cloud | ★★★★★ | ★★★☆☆ | Best raw quality, slower |
+| minimax-m2.5:cloud | ★★★★☆ | ★★★★☆ | Good all-around |
+
+### If running local models only
+
+You need at least a 14B+ parameter model to get useful code summaries. Anything smaller will hallucinate function names and produce generic descriptions that don't help search.
+
+| Model | Params | VRAM | Quality | Notes |
+|-------|--------|------|---------|-------|
+| qwen3:32b | 32B | ~20 GB | ★★★★☆ | Best local option if you have the VRAM |
+| qwen3:14b | 14B | ~10 GB | ★★★½☆ | Minimum viable for code summaries |
+| codellama:34b | 34B | ~22 GB | ★★★★☆ | Strong code understanding |
+| deepseek-coder-v2:16b | 16B | ~11 GB | ★★★½☆ | Decent code summaries |
+
+**Models to avoid for summarization:**
+
+| Model | Why |
+|-------|-----|
+| Any model < 7B | Summaries will be too vague to improve search |
+| Heavily quantized (Q2, Q3) | Quality degrades to the point of being worse than no summary |
+| Embedding models | These can't generate text, only vectors |
+
+Set your summary model in `.env`:
+
+```
+CODE_SEARCH_SUMMARY_MODEL=qwen3-coder-next:cloud    # Ollama Pro
+# or
+CODE_SEARCH_SUMMARY_MODEL=qwen3:32b                  # local, needs ~20GB VRAM
+```
+
+## API Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `GET` | `/health` | No | Liveness check |
+| `GET` | `/api/health` | No | Health + index stats (chunks, embedded, summarized) |
+| `POST` | `/api/search` | Yes | Semantic search with hybrid, code, or summary mode |
+| `POST` | `/api/index` | Yes | Trigger background indexing run |
+| `POST` | `/api/backfill-summaries` | Yes | Generate summaries for unsummarized chunks |
+| `GET` | `/api/projects` | Yes | Per-project chunk and summary counts |
+| `GET` | `/api/stats` | No | Chunk type breakdown and project coverage |
+| `GET` | `/api/summary-stats` | Yes | Summary counts by model |
+
+### Search request
+
+```json
+{
+  "query": "websocket authentication middleware",
+  "mode": "hybrid",
+  "limit": 10,
+  "min_score": 0.3,
+  "project": "my-api"
+}
+```
+
+**Modes:**
+- `hybrid` (default): Weighted combination of code + summary similarity. Best for most searches.
+- `code`: Raw code embedding match only. Use when searching for exact patterns.
+- `summary`: Summary embedding match only. Use when searching by high-level intent.
 
 ## Configuration
 
 | Variable | Default | Description |
-|---|---|---|
-| `CODE_SEARCH_API_KEY` | unset | Protects `/api/*` write/search endpoints when set. |
-| `CODE_SEARCH_WORKSPACE` | `./repos` | Primary directory tree to index. |
-| `CODE_SEARCH_REFERENCE` | unset | Optional secondary directory tree for reference material. |
-| `CODE_SEARCH_DB` | `./code_index.db` | SQLite database file path. |
-| `CODE_SEARCH_CORS_ORIGINS` | `*` | Comma-separated CORS allowlist. |
-| `OLLAMA_URL` | `http://localhost:11434` | Base URL for Ollama. |
-| `CODE_SEARCH_EMBED_MODEL` | `nomic-embed-text` | Embedding model used for code/search vectors. |
-| `CODE_SEARCH_SUMMARY_MODEL` | `qwen2.5:14b` | Primary summarization model. |
-| `CODE_SEARCH_SUMMARY_FALLBACK` | `qwen2.5:14b` | Fallback summarization model. |
-| `CODE_SEARCH_SUMMARY_WORKERS` | `4` | Parallel workers for summary generation. |
-| `CODE_SEARCH_DB_BATCH_SIZE` | `100` | Batch size for database summary updates. |
-| `CODE_SEARCH_CACHE_TTL_SECONDS` | `3600` | TTL for query embedding cache entries. |
-| `CODE_SEARCH_BACKUP_DIR` | `./backups` | Output directory for `backup-db.sh`. |
-| `CODE_SEARCH_MAX_BACKUPS` | `14` | Number of rotated SQLite backups to keep. |
-
-## How It Works
-
-1. **Chunking** — files are discovered under the configured roots, filtered by extension/size, and split into language-aware chunks.
-2. **Embedding** — each chunk is embedded with Ollama and stored in SQLite as packed float vectors.
-3. **Summarization** — chunks can be summarized with a local Ollama model so search works on both literal code and higher-level intent.
-4. **Hybrid search** — query embeddings are matched against both code content and summaries, then weighted into a single ranked result set.
-
-## Architecture
-
-```text
-Code repositories / reference docs
-            |
-            v
-      file collection
-            |
-            v
-   language-aware chunker
-            |
-            +-------------------+
-            |                   |
-            v                   v
-   Ollama embeddings      Ollama summaries
-            |                   |
-            +---------+---------+
-                      |
-                      v
-               SQLite index
-                      |
-                      v
-           FastAPI search endpoints
-                      |
-                      v
-              hybrid ranked results
-```
+|----------|---------|-------------|
+| `CODE_SEARCH_WORKSPACE` | `./repos` | Root directory to scan for code |
+| `CODE_SEARCH_REFERENCE` | *(unset)* | Optional second directory for reference docs |
+| `CODE_SEARCH_DB` | `./code_index.db` | SQLite database path |
+| `CODE_SEARCH_API_KEY` | *(unset)* | API key for protected endpoints. Unset = no auth. |
+| `CODE_SEARCH_CORS_ORIGINS` | `*` | Comma-separated CORS origins |
+| `OLLAMA_URL` | `http://localhost:11434` | Ollama API base URL |
+| `CODE_SEARCH_EMBED_MODEL` | `qwen3-embedding:8b` | Embedding model |
+| `CODE_SEARCH_SUMMARY_MODEL` | `qwen3-coder-next:cloud` | Primary summarization model |
+| `CODE_SEARCH_SUMMARY_FALLBACK` | `qwen3-coder-next:cloud` | Fallback summarization model |
+| `CODE_SEARCH_SUMMARY_WORKERS` | `4` | Parallel summary generation workers |
+| `CODE_SEARCH_DB_BATCH_SIZE` | `100` | DB write batch size |
+| `CODE_SEARCH_CACHE_TTL_SECONDS` | `3600` | Query embedding cache TTL |
 
 ## Helper Scripts
 
-- `run-index.py` — direct CLI indexing run, useful for first-time or batch indexing
-- `index-then-summarize.sh` — run indexing, then summarize unsummarized chunks
-- `backup-db.sh` — create a rotated SQLite backup using the built-in Python backup API
+| Script | Purpose |
+|--------|---------|
+| `run-index.py` | CLI indexer for first-time or batch re-indexing |
+| `index-then-summarize.sh` | Full pipeline: index new chunks, then summarize |
+| `backup-db.sh` | Rotated SQLite backup (configurable retention) |
+
+## Supported Languages
+
+Chunking is language-aware for: Python, TypeScript/TSX, JavaScript/JSX, Go, Rust, Markdown, Astro, HTML, CSS, Shell, JSON, YAML, TOML.
+
+Other text files are indexed as flat chunks.
+
+## Requirements
+
+- Python 3.10+
+- [Ollama](https://ollama.com) running locally (or on a reachable host)
+- An embedding model pulled in Ollama
+- ~500 MB to 6 GB VRAM depending on embedding model choice
 
 ## License
 

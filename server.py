@@ -29,11 +29,11 @@ _reference_dir = os.environ.get("CODE_SEARCH_REFERENCE")
 REFERENCE_DIR = Path(_reference_dir).expanduser() if _reference_dir else None
 OLLAMA_BASE = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_EMBED_URL = f"{OLLAMA_BASE}/api/embed"
-EMBED_MODEL = os.environ.get("CODE_SEARCH_EMBED_MODEL", "nomic-embed-text")
+EMBED_MODEL = os.environ.get("CODE_SEARCH_EMBED_MODEL", "qwen3-embedding:8b")
 
 # Ollama models for summaries
-SUMMARY_MODEL_PRIMARY = os.environ.get("CODE_SEARCH_SUMMARY_MODEL", "qwen2.5:14b")
-SUMMARY_MODEL_FALLBACK = os.environ.get("CODE_SEARCH_SUMMARY_FALLBACK", "qwen2.5:14b")
+SUMMARY_MODEL_PRIMARY = os.environ.get("CODE_SEARCH_SUMMARY_MODEL", "qwen3-coder-next:cloud")
+SUMMARY_MODEL_FALLBACK = os.environ.get("CODE_SEARCH_SUMMARY_FALLBACK", "qwen3-coder-next:cloud")
 
 # Parallel summary config
 SUMMARY_WORKERS = int(os.environ.get("CODE_SEARCH_SUMMARY_WORKERS", "4"))
