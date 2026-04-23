@@ -6,3 +6,8 @@ backups/
 __pycache__/
 .env
 *.pyc
+
+# Claude Code session files (never commit)
+.claude/
+.codex/
+.learnings/
