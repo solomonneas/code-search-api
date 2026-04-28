@@ -1,0 +1,40 @@
+{
+  "id": "code-search",
+  "name": "Code Search",
+  "description": "Read-only tools for querying a local code-search-api semantic index by intent.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "url": {
+        "type": "string",
+        "format": "uri",
+        "default": "http://localhost:5204",
+        "description": "Base URL for the running code-search-api service."
+      },
+      "apiKey": {
+        "type": "string",
+        "description": "Optional code-search-api key. Leave blank and set CODE_SEARCH_API_KEY in the environment instead."
+      },
+      "apiKeyEnv": {
+        "type": "string",
+        "default": "CODE_SEARCH_API_KEY",
+        "description": "Environment variable to read the API key from when apiKey is blank."
+      }
+    }
+  },
+  "uiHints": {
+    "url": {
+      "label": "API URL",
+      "help": "The local code-search-api base URL, usually http://localhost:5204."
+    },
+    "apiKey": {
+      "label": "API Key",
+      "help": "Optional. Sent as X-API-Key when the FastAPI service requires authentication."
+    },
+    "apiKeyEnv": {
+      "label": "API Key Env",
+      "advanced": true
+    }
+  }
+}
