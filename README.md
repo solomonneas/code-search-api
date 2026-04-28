@@ -1,13 +1,32 @@
-# Code Search API
+<p align="center">
+  <img src="docs/assets/code-search-api-banner.jpg" alt="Code Search API banner">
+</p>
 
-**Local semantic code search powered by Ollama embeddings and SQLite.**
+<h1 align="center">Code Search API</h1>
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![Ollama](https://img.shields.io/badge/Ollama-local--first-000000?logo=ollama)](https://ollama.com)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+<p align="center">
+  <strong>Local semantic code search powered by Ollama embeddings and SQLite.</strong>
+</p>
 
-Index your codebase with language-aware chunking, generate LLM summaries per chunk, and search by intent instead of exact text. Embeddings run locally by default through Ollama. Summaries can run locally too, or use Ollama Cloud models when you want better code explanations without managing a separate model provider.
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
+  <img src="https://img.shields.io/badge/Ollama-local--first-000000?style=for-the-badge" alt="Ollama local-first">
+  <img src="https://img.shields.io/badge/SQLite-vector_store-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite vector store">
+  <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT license">
+</p>
+
+Code Search API indexes your codebase, stores local embeddings in SQLite, and lets you search by intent instead of exact text. It is built for agents, developer dashboards, and CLI workflows that need fast answers across real repositories.
+
+Embeddings run locally through Ollama by default. Summaries can run locally too, or use Ollama Cloud models when you want better code explanations without wiring up another model provider.
+
+## What It Does
+
+- Splits source files with language-aware chunking instead of arbitrary line windows
+- Embeds chunks with Ollama and stores packed float32 vectors in SQLite
+- Generates optional LLM summaries per chunk for higher-quality intent search
+- Searches code vectors, summary vectors, or a weighted hybrid of both
+- Exposes a small FastAPI service for local tools and agent workflows
 
 ## How It Works
 
