@@ -7,7 +7,7 @@
 [![Ollama](https://img.shields.io/badge/Ollama-local--first-000000?logo=ollama)](https://ollama.com)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Index your codebase with language-aware chunking, generate LLM summaries per chunk, and search by intent instead of exact text. Everything runs locally. No cloud APIs, no vendor lock-in, no per-query costs.
+Index your codebase with language-aware chunking, generate LLM summaries per chunk, and search by intent instead of exact text. Embeddings run locally by default through Ollama. Summaries can run locally too, or use Ollama Cloud models when you want better code explanations without managing a separate model provider.
 
 ## How It Works
 
@@ -115,14 +115,23 @@ Summaries are what make hybrid search work. The summarizer reads each code chunk
 
 ### If you have Ollama Pro (cloud models via Ollama)
 
-Best option. Cloud-quality summaries with zero API key management:
+Best option for bulk code-search summaries. Our April 2026 code-search gauntlet still put `qwen3-coder-next:cloud` first, with `kimi-k2.6:cloud` as the best tested fallback.
 
 | Model | Quality | Speed | Notes |
 |-------|---------|-------|-------|
-| **qwen3-coder-next:cloud** | ★★★★★ | ★★★★☆ | Code specialist. Recommended. |
-| deepseek-v3.2:cloud | ★★★★½ | ★★★★★ | Fast, strong general coding |
-| glm-5:cloud | ★★★★★ | ★★★☆☆ | Best raw quality, slower |
-| minimax-m2.5:cloud | ★★★★☆ | ★★★★☆ | Good all-around |
+| **qwen3-coder-next:cloud** | ★★★★★ | ★★★★★ | Current default. Best balance of clean summaries, speed, and structure. |
+| kimi-k2.6:cloud | ★★★★★ | ★★★★☆ | Best tested fallback. Strong identifier retention, but more verbose. |
+| deepseek-v4-flash:cloud | ★★★★☆ | ★★★★☆ | Promising candidate, but needs thinking behavior controlled and had worse tail latency. |
+| deepseek-v4-pro:cloud | untested | untested | Available through Ollama as a separate benchmark target. Do not assume it beats Qwen until tested. |
+| deepseek-v3.2:cloud | ★★★☆☆ | ★★☆☆☆ | Reliable, but slower and lower retention in our backfill gauntlet. |
+| minimax-m2.7:cloud | ★★☆☆☆ | ★★☆☆☆ | Reject for summaries. Too much empty-content or thinking leakage in this workflow. |
+
+Ollama Pro supports two auth paths:
+
+- Local CLI and localhost API calls can use `ollama signin`.
+- Direct hosted calls to `https://ollama.com/api` use `OLLAMA_API_KEY`.
+
+Ollama Pro is a $20/month plan with 3 concurrent cloud models and 50x more cloud usage than Free. Ollama documents cloud usage as infrastructure utilization rather than a fixed token cap, with session limits resetting every 5 hours and weekly limits resetting every 7 days.
 
 ### If running local models only
 
@@ -147,6 +156,7 @@ Set your summary model in `.env`:
 
 ```
 CODE_SEARCH_SUMMARY_MODEL=qwen3-coder-next:cloud    # Ollama Pro
+CODE_SEARCH_SUMMARY_FALLBACK=kimi-k2.6:cloud        # optional cloud fallback
 # or
 CODE_SEARCH_SUMMARY_MODEL=qwen3:32b                  # local, needs ~20GB VRAM
 ```
