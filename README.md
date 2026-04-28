@@ -123,7 +123,7 @@ Best option for bulk code-search summaries. Our April 2026 code-search gauntlet 
 | kimi-k2.6:cloud | ★★★★★ | ★★★★☆ | Best tested fallback. Strong identifier retention, but more verbose. |
 | gemma4:31b-cloud | ★★★☆☆ | ★★☆☆☆ | Clean outputs, but lower key-term retention and severe tail latency on code-search summaries. |
 | deepseek-v4-flash:cloud | ★★★★☆ | ★★★★☆ | Promising candidate, but needs thinking behavior controlled and had worse tail latency. |
-| deepseek-v4-pro:cloud | untested | untested | Available through Ollama as a separate benchmark target. Do not assume it beats Qwen until tested. |
+| deepseek-v4-pro:cloud | ★★☆☆☆ | ★☆☆☆☆ | Clean when successful, but rejected for bulk summaries after 7/100 failures, two 180s timeouts, and severe tail latency. |
 | deepseek-v3.2:cloud | ★★★☆☆ | ★★☆☆☆ | Reliable, but slower and lower retention in our backfill gauntlet. |
 | minimax-m2.7:cloud | ★★☆☆☆ | ★★☆☆☆ | Reject for summaries. Too much empty-content or thinking leakage in this workflow. |
 
