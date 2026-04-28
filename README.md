@@ -127,6 +127,18 @@ Best option for bulk code-search summaries. Our April 2026 code-search gauntlet 
 | deepseek-v3.2:cloud | ★★★☆☆ | ★★☆☆☆ | Reliable, but slower and lower retention in our backfill gauntlet. |
 | minimax-m2.7:cloud | ★★☆☆☆ | ★★☆☆☆ | Reject for summaries. Too much empty-content or thinking leakage in this workflow. |
 
+Recent gauntlet results on the same 100 real code/documentation chunks:
+
+| Model | Success | Median | P95 | Key retention | Decision |
+|-------|--------:|-------:|----:|--------------:|----------|
+| `qwen3-coder-next:cloud` | 100/100 | 1.64s | 3.01s | 0.293 | Primary |
+| `kimi-k2.6:cloud` | 100/100 | 2.59s | 4.76s | 0.296 | Fallback |
+| `deepseek-v4-flash:cloud` | 100/100 | 1.88s | 14.41s | 0.288 | Candidate only |
+| `deepseek-v4-pro:cloud` | 93/100 | 2.29s | 56.24s | 0.218 | Reject |
+| `gemma4:31b-cloud` | 100/100 | 2.16s | 31.11s | 0.247 | Reject |
+
+DeepSeek V4 Pro looked clean when it returned, but the April 28 run had five HTTP 503s, two 180s timeouts, lower identifier retention, and a much worse latency tail than Qwen or Kimi. Do not route bulk summary backfills to it unless a future retry shows materially better reliability.
+
 Ollama Pro supports two auth paths:
 
 - Local CLI and localhost API calls can use `ollama signin`.
