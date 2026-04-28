@@ -63,29 +63,43 @@ Your code repos
 
 ## Quick Start
 
+### Option A — install from PyPI
+
+```bash
+pipx install code-search-api          # or: pip install code-search-api
+ollama pull qwen3-embedding:8b
+export CODE_SEARCH_WORKSPACE=/path/to/your/code   # see .env.example for full config
+code-search-api index                  # first-time index
+code-search-api serve                  # http://localhost:5204
+```
+
+### Option B — Docker
+
+```bash
+docker run --rm -p 5204:5204 \
+  -e CODE_SEARCH_WORKSPACE=/workspace \
+  -v /path/to/your/code:/workspace:ro \
+  -v code-search-data:/data \
+  --add-host host.docker.internal:host-gateway \
+  ghcr.io/solomonneas/code-search-api:latest
+```
+
+A `docker-compose.yml` is included at the repo root for a more typical deployment shape.
+
+### Option C — run from source
+
 ```bash
 git clone https://github.com/solomonneas/code-search-api.git
 cd code-search-api
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -e .
 cp .env.example .env    # edit CODE_SEARCH_WORKSPACE to point at your repos
-```
-
-Pull an embedding model and start Ollama:
-
-```bash
-ollama pull qwen3-embedding:8b
-```
-
-Index your code, then start the server:
-
-```bash
 source .env
-python3 run-index.py                          # first-time index
-uvicorn server:app --host 0.0.0.0 --port 5204
+code-search-api index
+code-search-api serve
 ```
 
-Search:
+### Search
 
 ```bash
 curl -s -X POST http://localhost:5204/api/search \

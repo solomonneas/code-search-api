@@ -7,6 +7,12 @@ __pycache__/
 .env
 *.pyc
 
+# Python packaging artifacts
+dist/
+build/
+*.egg-info/
+.venv/
+
 # Claude Code session files (never commit)
 .claude/
 .codex/

@@ -1,15 +1,11 @@
-#!/usr/bin/env python3 -u
 """Run the local indexer directly without HTTP."""
 import hashlib
-import os
 import sys
 import time
 from contextlib import closing
 from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(__file__))
-
-from server import collect_files, chunk_file, embed_text, get_conn, init_db, migrate_db, pack_embedding
+from .server import collect_files, chunk_file, embed_text, get_conn, init_db, migrate_db, pack_embedding
 
 def main():
     init_db()
