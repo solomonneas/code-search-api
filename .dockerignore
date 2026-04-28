@@ -22,4 +22,3 @@ code_index*.db
 *.log
 docker-compose*.yml
 Dockerfile
-README.md
